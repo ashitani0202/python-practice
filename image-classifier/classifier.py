@@ -104,7 +104,6 @@ def run_training(
         transforms.Normalize(mean, std)
     ])
 
-
     train_dataset = datasets.ImageFolder(train_dir, transform=train_transform)
     val_dataset = datasets.ImageFolder(val_dir, transform=val_transform)
 
