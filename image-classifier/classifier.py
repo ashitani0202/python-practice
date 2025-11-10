@@ -83,8 +83,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
             if not os.path.exists(new_path):
                 return new_path
             i += 1
-    
-    
+
     train_transform = transforms.Compose([
         transforms.Resize(resize_tuple),
         transforms.ToTensor(),
@@ -118,7 +117,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     best_acc = 0.0
     best_epoch = 0
     epochs_no_improve = 0
-    
+
     pth_dir = "results/pth"
     os.makedirs(pth_dir,exist_ok=True)
     for epoch in range(num_epochs):
@@ -162,8 +161,8 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     if len(val_acc_list) == 0:
         raise ValueError("学習が1エポックも行われていません。設定を確認してください。")
     final_val_acc = val_acc_list[-1]
-    
-    
+
+
     loss_dir = "results/loss"
     os.makedirs(loss_dir, exist_ok=True)
 
@@ -198,7 +197,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     acc = accuracy_score(all_labels, all_preds)
     cm = confusion_matrix(all_labels, all_preds)
     class_names = val_dataset.classes
-    
+
     matrix_dir = "results/matrix"
     os.makedirs(matrix_dir, exist_ok=True)
 
@@ -212,7 +211,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     matrix_path = get_unique_filepath(os.path.join(matrix_dir, f"matrix_{model_rev}_acc{acc*100:.2f}.png"))
     plt.savefig(matrix_path)
     print(f"保存しました{matrix_path}")
-    
+
     excel_file ="output.xlsx"
     result = {
         "モデル名": model_rev,
@@ -226,7 +225,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
         "学習":head_flag,
         "pretrained": pretrained
     }
-    
+
     if os.path.exists(excel_file):
         # 既存ファイルに追記
         df = pd.read_excel(excel_file)
@@ -271,7 +270,7 @@ class GUIApp:
 
         self.train_dir = ""
         self.val_dir = ""
-        
+
         # 学習データフォルダ選択ボタンとその下のパス表示ラベル
         tk.Button(master, text="学習データフォルダ選択", command=self.select_train).grid(
             row=7, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 2))
@@ -289,10 +288,10 @@ class GUIApp:
 
         self.head_only = tk.BooleanVar(value=True)
         tk.Checkbutton(master, text="ヘッドのみ学習", variable=self.head_only).grid(row=11, column=0, columnspan=2)
-        
+
         self.use_pretrained = tk.BooleanVar(value=True)
         tk.Checkbutton(master, text="学習済み重みを使用（pretrained=True）", variable=self.use_pretrained).grid(row=12, column=0, columnspan=2)
-        
+
         # EarlyStopping チェックボックス用の変数
         self.early_stopping_var = tk.BooleanVar(value=False)
         tk.Checkbutton(master, text="EarlyStopping を有効にする", variable=self.early_stopping_var).grid(
@@ -302,7 +301,7 @@ class GUIApp:
         self.status.grid(row=14, column=0, columnspan=2)
 
         tk.Button(master, text="学習開始", command=self.start_training_thread).grid(row=15, column=0, columnspan=2)
-        
+
         tk.Button(master, text="中断", command=self.stop_training_now).grid(row=16, column=0, columnspan=2)
 
 
@@ -358,11 +357,10 @@ class GUIApp:
         except Exception as e:
             self.master.after(0, lambda: self.status.config(text=f"エラー: {e}"))
             self.master.after(0, lambda e=e: messagebox.showerror("エラー", str(e)))
-            
     def stop_training_now(self):
         self.stop_training = True
         self.status.config(text="中止指示済み（変更可）")
-        
+
     def on_closing(self):
         import matplotlib.pyplot as plt
         plt.close('all')  # ウィンドウ閉じる前に全グラフ閉じる
