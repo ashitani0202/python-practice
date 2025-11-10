@@ -50,7 +50,10 @@ def run_training(model_rev, lr, num_epochs, batch_size,
             train_acc += acc.item()
             loss.backward()
             optimizer.step()
-        return train_loss / len(dataloader.dataset), train_acc / len(dataloader.dataset)
+        return (
+            train_loss / len(dataloader.dataset),
+            train_acc / len(dataloader.dataset),
+        )
 
     def val_epoch(model, dataloader, criterion, device):
         model.eval()
@@ -66,7 +69,10 @@ def run_training(model_rev, lr, num_epochs, batch_size,
                 val_loss += loss.item() * images.size(0)
                 acc = (outputs.max(1)[1] == labels).sum()
                 val_acc += acc.item()
-        return val_loss / len(dataloader.dataset),val_acc / len(dataloader.dataset)
+        return (
+            val_loss / len(dataloader.dataset),
+            val_acc / len(dataloader.dataset),
+        )
 
     def get_unique_filepath(base_path):
         """
@@ -94,41 +100,38 @@ def run_training(model_rev, lr, num_epochs, batch_size,
         transforms.ToTensor(),
         transforms.Normalize(mean, std)
     ])
-
-
     train_dataset = datasets.ImageFolder(train_dir, transform=train_transform)
     val_dataset = datasets.ImageFolder(val_dir, transform=val_transform)
-
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     num_classes = len(train_dataset.classes)
-
-    model = timm.create_model(model_rev, pretrained=pretrained, num_classes=num_classes)
+    model = timm.create_model(
+        model_rev,
+        pretrained=pretrained,
+        num_classes=num_classes
+        )
     model.to(device)
-
     set_trainable_layers(model, head_only)
-
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
-
+    optimizer = optim.AdamW(
+        filter(lambda p: p.requires_grad, model.parameters()), lr=lr
+        )
     train_loss_list, train_acc_list, val_loss_list, val_acc_list = [], [], [], []
     best_acc = 0.0
     best_epoch = 0
     epochs_no_improve = 0
-
     pth_dir = "results/pth"
     os.makedirs(pth_dir,exist_ok=True)
     for epoch in range(num_epochs):
         if not train_dir or not os.path.exists(train_dir):
             messagebox.showerror("エラー", "学習フォルダが設定されていません")
             return
-
         if len(os.listdir(train_dir)) < 2:
-            messagebox.showerror("エラー", "学習フォルダにクラスごとのサブフォルダが2つ以上必要です")
+            messagebox.showerror(
+                "エラー", "学習フォルダにクラスごとのサブフォルダが2つ以上必要です"
+                )
             return
-
         if should_stop_func and should_stop_func():
             print("⚠️ 学習が中断されました")
             return
@@ -148,24 +151,23 @@ def run_training(model_rev, lr, num_epochs, batch_size,
             epochs_no_improve = 0
         else:
             epochs_no_improve += 1
-
-        print(f"[{epoch+1}/{num_epochs}] Train Loss: {train_loss:.4f}, Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f}, Acc: {val_acc:.4f}")
-
+        print(
+            f"[{epoch+1}/{num_epochs}] Train Loss: {train_loss:.4f}, "
+            "Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f}, Acc: {val_acc:.4f}"
+            )
         # ✅ EarlyStopping 発動条件
         if use_early_stopping and epochs_no_improve >= patience:
-            print(f"⏹ EarlyStopping 発動 (epoch {epoch+1}) - best acc={best_acc:.2f} (epoch {best_epoch+1})")
+            print(
+                f"⏹ EarlyStopping 発動 (epoch {epoch+1}) - "
+                "best acc={best_acc:.2f} (epoch {best_epoch+1})"
+                )
             break
-
     head_flag = "head_only=True" if head_only else "head_only=False"
-
     if len(val_acc_list) == 0:
         raise ValueError("学習が1エポックも行われていません。設定を確認してください。")
     final_val_acc = val_acc_list[-1]
-
-
     loss_dir = "results/loss"
     os.makedirs(loss_dir, exist_ok=True)
-
     plt.figure(figsize=(15, 5))
     plt.subplot(1,2,1)
     plt.plot(train_loss_list, label="train_loss")
@@ -177,10 +179,11 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     plt.legend()
     plt.title(f"{model_rev}-Loss | lr={lr}, batch={batch_size}, epochs={num_epochs}\n{head_flag}")
     # --- loss曲線の保存 ---
-    loss_path = get_unique_filepath(os.path.join(loss_dir, f"loss_{model_rev}_{final_val_acc*100:.2f}.png"))
+    loss_path = get_unique_filepath(
+        os.path.join(loss_dir, f"loss_{model_rev}_{final_val_acc*100:.2f}.png")
+        )
     plt.savefig(loss_path)
     print(f"保存しました。{loss_path}")
-
     # 混同行列
     all_preds, all_labels = [], []
     model.load_state_dict(torch.load(pth_path))
@@ -197,18 +200,21 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     acc = accuracy_score(all_labels, all_preds)
     cm = confusion_matrix(all_labels, all_preds)
     class_names = val_dataset.classes
-
     matrix_dir = "results/matrix"
     os.makedirs(matrix_dir, exist_ok=True)
-
     plt.figure(figsize=(8,6))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
                 xticklabels=class_names, yticklabels=class_names)
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
-    plt.title(f"{model_rev}-Matrix | acc={acc*100:.2f}, lr={lr}, batch={batch_size}, epochs={num_epochs}\n{head_flag}")
+    plt.title(
+    f"{model_rev}-Matrix | acc={acc*100:.2f}, lr={lr}, "
+    f"batch={batch_size}, epochs={num_epochs}\n{head_flag}"
+    )
     plt.tight_layout()
-    matrix_path = get_unique_filepath(os.path.join(matrix_dir, f"matrix_{model_rev}_acc{acc*100:.2f}.png"))
+    matrix_path = get_unique_filepath(
+        os.path.join(matrix_dir, f"matrix_{model_rev}_acc{acc*100:.2f}.png")
+        )
     plt.savefig(matrix_path)
     print(f"保存しました{matrix_path}")
 
@@ -249,14 +255,12 @@ class GUIApp:
         master.grid_columnconfigure(1, weight=1)
         self.stop_training = False
 
-
         def add_entry(row, label, default=""):
             tk.Label(master, text=label).grid(row=row, column=0, sticky="e", padx=5, pady=5)
             entry = tk.Entry(master)
             entry.insert(0, default)
             entry.grid(row=row, column=1, sticky="w", padx=5, pady=5)
             return entry
-
         self.model_entry = add_entry(0, "モデル名", "vgg16")
         self.lr_entry = add_entry(1, "学習率", "0.001")
         self.epoch_entry = add_entry(2, "エポック数", "1")
@@ -266,11 +270,8 @@ class GUIApp:
         self.mean_entry = add_entry(5, "Normalize平均 (例: 0.485,0.456,0.406)", "0.485,0.456,0.406")
         # 正規化 分散
         self.std_entry = add_entry(6, "Normalize分散 (例: 0.229,0.224,0.225)", "0.229,0.224,0.225")
-
-
         self.train_dir = ""
         self.val_dir = ""
-
         # 学習データフォルダ選択ボタンとその下のパス表示ラベル
         tk.Button(master, text="学習データフォルダ選択", command=self.select_train).grid(
             row=7, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 2))
@@ -287,23 +288,34 @@ class GUIApp:
 
 
         self.head_only = tk.BooleanVar(value=True)
-        tk.Checkbutton(master, text="ヘッドのみ学習", variable=self.head_only).grid(row=11, column=0, columnspan=2)
-
+        tk.Checkbutton(
+            master,
+            text="ヘッドのみ学習",
+            variable=self.head_only
+            ).grid(row=11, column=0, columnspan=2)
         self.use_pretrained = tk.BooleanVar(value=True)
-        tk.Checkbutton(master, text="学習済み重みを使用（pretrained=True）", variable=self.use_pretrained).grid(row=12, column=0, columnspan=2)
-
+        tk.Checkbutton(
+            master,
+            text="学習済み重みを使用（pretrained=True）",
+            variable=self.use_pretrained
+            ).grid(row=12, column=0, columnspan=2)
         # EarlyStopping チェックボックス用の変数
         self.early_stopping_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(master, text="EarlyStopping を有効にする", variable=self.early_stopping_var).grid(
-        row=13, column=0, columnspan=2)
-
+        tk.Checkbutton(master,
+                       text="EarlyStopping を有効にする",
+                       variable=self.early_stopping_var
+                       ).grid(row=13, column=0, columnspan=2)
         self.status = tk.Label(master, text="準備完了")
         self.status.grid(row=14, column=0, columnspan=2)
-
-        tk.Button(master, text="学習開始", command=self.start_training_thread).grid(row=15, column=0, columnspan=2)
-
-        tk.Button(master, text="中断", command=self.stop_training_now).grid(row=16, column=0, columnspan=2)
-
+        tk.Button(
+            master,
+            text="学習開始",
+            command=self.start_training_thread
+            ).grid(row=15, column=0, columnspan=2)
+        tk.Button(master,
+                  text="中断",
+                  command=self.stop_training_now
+                  ).grid(row=16, column=0, columnspan=2)
 
     def select_train(self):
         path = filedialog.askdirectory()
