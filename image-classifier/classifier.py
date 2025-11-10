@@ -1,6 +1,8 @@
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
+import matplotlib
+import matplotlib.pyplot as plt
+import seaborn as sns
 import threading
 import pandas as pd
 import timm
@@ -10,12 +12,11 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 from torchvision import datasets
 from torch.utils.data import DataLoader
-import matplotlib
-matplotlib.use('Agg') # 画面表示なしのバックエンドに切り替え
-import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, accuracy_score
-import seaborn as sns
 from tqdm import tqdm
+from tkinter import filedialog, messagebox
+
+matplotlib.use('Agg') # 画面表示なしのバックエンドに切り替え
 
 def run_training(model_rev, lr, num_epochs, batch_size,
                  train_dir, val_dir, head_only, resize_tuple,
