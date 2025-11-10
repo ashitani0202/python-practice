@@ -1,110 +1,61 @@
-name: CI  # ワークフロー名
+name: CI  # ワークフロー名（1回だけ）
 
 on:
   workflow_dispatch:  # 手動実行
   pull_request:       # PR 作成・更新時に自動実行
 
 jobs:
-  lint-pr-comment:
-    name: Lint & Type Check PR Comment
+  flake8:
+    name: Lint (flake8)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10.11"
+      - run: pip install flake8
+      - run: flake8 .
 
-      - name: Install tools
-        run: |
-          pip install black isort flake8 ruff mypy pyright
-
-      # ---------- flake8 ----------
-      - name: Run flake8
-        id: flake8
-        run: |
-          echo "::group::flake8"
-          flake8 . || true
-          echo "::endgroup::"
-          echo "flake8_output<<EOF" >> $GITHUB_OUTPUT
-          flake8 . || true >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      # ---------- ruff ----------
-      - name: Run ruff
-        id: ruff
-        run: |
-          echo "::group::ruff"
-          ruff check . || true
-          echo "::endgroup::"
-          echo "ruff_output<<EOF" >> $GITHUB_OUTPUT
-          ruff check . || true >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      # ---------- isort ----------
-      - name: Run isort
-        id: isort
-        run: |
-          echo "::group::isort"
-          isort . --check-only || true
-          echo "::endgroup::"
-          echo "isort_output<<EOF" >> $GITHUB_OUTPUT
-          isort . --check-only || true >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      # ---------- mypy ----------
-      - name: Run mypy
-        id: mypy
-        run: |
-          echo "::group::mypy"
-          mypy . || true
-          echo "::endgroup::"
-          echo "mypy_output<<EOF" >> $GITHUB_OUTPUT
-          mypy . || true >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      # ---------- pyright ----------
-      - name: Run pyright
-        id: pyright
-        run: |
-          echo "::group::pyright"
-          pyright || true
-          echo "::endgroup::"
-          echo "pyright_output<<EOF" >> $GITHUB_OUTPUT
-          pyright || true >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      # ---------- Comment on PR ----------
-      - name: Comment on PR
-        uses: peter-evans/create-or-update-comment@v4
+  ruff:
+    name: Lint (ruff)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ⚠️ **Lint / Type Check Results**
-            
-            ### flake8
-            ```
-            ${{ steps.flake8.outputs.flake8_output }}
-            ```
+          python-version: "3.10.11"
+      - run: pip install ruff
+      - run: ruff check.  # プロジェクト全体をチェック
 
-            ### ruff
-            ```
-            ${{ steps.ruff.outputs.ruff_output }}
-            ```
+  isort:
+    name: Check import sort (isort)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.11"
+      - run: pip install isort
+      - run: isort . --check-only
 
-            ### isort
-            ```
-            ${{ steps.isort.outputs.isort_output }}
-            ```
+  mypy:
+    name: Type check (mypy)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.11"
+      - run: pip install mypy
+      - run: mypy .
 
-            ### mypy
-            ```
-            ${{ steps.mypy.outputs.mypy_output }}
-            ```
-
-            ### pyright
-            ```
-            ${{ steps.pyright.outputs.pyright_output }}
-            ```
+  pyright:
+    name: Type check (pyright)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.11"
+      - run: pip install pyright
+      - run: pyright
