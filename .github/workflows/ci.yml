@@ -1,0 +1,44 @@
+name: CI (Windows + Python)
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10.11"
+
+      - name: Install linters / type-check tools
+        run: |
+          pip install flake8 black isort mypy pyright
+
+      # ---------- Lint ----------
+      - name: Run flake8 (lint)
+        run: |
+          flake8 .
+
+      # ---------- Formatting Check ----------
+      - name: Check formatting (black)
+        run: |
+          black --check .
+
+      - name: Check import sort (isort)
+        run: |
+          isort . --check-only
+
+      # ---------- Type Checking ----------
+      - name: Run mypy
+        run: |
+          mypy .
+
+      - name: Run pyright
+        run: |
+          pyright
