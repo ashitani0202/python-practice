@@ -16,13 +16,14 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 from tqdm import tqdm
 from tkinter import filedialog, messagebox
 
-matplotlib.use('Agg') # 画面表示なしのバックエンドに切り替え
+matplotlib.use('Agg')  # 画面表示なしのバックエンドに切り替え
+
 
 def run_training(model_rev, lr, num_epochs, batch_size,
                  train_dir, val_dir, head_only, resize_tuple,
                  mean, std, pretrained=True, should_stop_func=None,
-                 use_early_stopping=True, patience=10 ):
-    
+                 use_early_stopping=True, patience=10):
+
     def set_trainable_layers(model, train_head_only=True):
         if train_head_only:
             for param in model.parameters():
@@ -32,7 +33,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
         else:
             for param in model.parameters():
                 param.requires_grad = True
-                
+
     def train_epoch(model, dataloader, criterion, optimizer, device):
         model.train()
         train_loss, train_acc = 0, 0
@@ -50,7 +51,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
             loss.backward()
             optimizer.step()
         return train_loss / len(dataloader.dataset), train_acc / len(dataloader.dataset)
-    
+
     def val_epoch(model, dataloader, criterion, device):
         model.eval()
         val_loss, val_acc = 0, 0
@@ -65,8 +66,8 @@ def run_training(model_rev, lr, num_epochs, batch_size,
                 val_loss += loss.item() * images.size(0)
                 acc = (outputs.max(1)[1] == labels).sum()
                 val_acc += acc.item()
-        return val_loss / len(dataloader.dataset), val_acc / len(dataloader.dataset)
-    
+        return val_loss / len(dataloader.dataset),val_acc / len(dataloader.dataset)
+
     def get_unique_filepath(base_path):
         """
         base_path にファイルパスを入れて、もし同名ファイルがあれば
