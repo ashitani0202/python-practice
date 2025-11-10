@@ -1,6 +1,7 @@
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox
+import matplotlib
+import matplotlib.pyplot as plt
 import threading
 import pandas as pd
 import timm
@@ -8,17 +9,30 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
+import seaborn as sns
+
 from torchvision import datasets
 from torch.utils.data import DataLoader
-import matplotlib
-matplotlib.use('Agg') # 画面表示なしのバックエンドに切り替え
-import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, accuracy_score
-import seaborn as sns
 from tqdm import tqdm
+from tkinter import filedialog, messagebox
+
+matplotlib.use('Agg')  # 画面表示なしのバックエンドに切り替え
 
 
-def run_training(model_rev, lr, num_epochs, batch_size, train_dir, val_dir, head_only, resize_tuple, mean, std, pretrained=True, should_stop_func=None):
+def run_training(
+    model_rev,
+    lr,
+    num_epochs,
+    batch_size,
+    train_dir,
+    val_dir,
+    head_only,
+    resize_tuple,
+    mean,
+    std,
+    pretrained=True,
+    should_stop_func=None):
     def set_trainable_layers(model, train_head_only=True):
         if train_head_only:
             for param in model.parameters():
@@ -62,7 +76,7 @@ def run_training(model_rev, lr, num_epochs, batch_size, train_dir, val_dir, head
                 acc = (outputs.max(1)[1] == labels).sum()
                 val_acc += acc.item()
         return val_loss / len(dataloader.dataset), val_acc / len(dataloader.dataset)
-    
+
     def get_unique_filepath(base_path):
         """
         base_path にファイルパスを入れて、もし同名ファイルがあれば
@@ -78,8 +92,7 @@ def run_training(model_rev, lr, num_epochs, batch_size, train_dir, val_dir, head
             if not os.path.exists(new_path):
                 return new_path
             i += 1
-    
-    
+
     train_transform = transforms.Compose([
         transforms.Resize(resize_tuple),
         transforms.ToTensor(),
@@ -184,7 +197,7 @@ def run_training(model_rev, lr, num_epochs, batch_size, train_dir, val_dir, head
     matrix_path = get_unique_filepath(os.path.join(matrix_dir, f"matrix_{model_rev}_acc{acc*100:.2f}.png"))
     plt.savefig(matrix_path)
     print(f"保存しました{matrix_path}")
-    
+
     excel_file ="output.xlsx"
     result = {
         "モデル名": model_rev,
@@ -198,7 +211,7 @@ def run_training(model_rev, lr, num_epochs, batch_size, train_dir, val_dir, head
         "学習":head_flag,
         "pretrained": pretrained
     }
-    
+
     if os.path.exists(excel_file):
         # 既存ファイルに追記
         df = pd.read_excel(excel_file)
@@ -261,7 +274,7 @@ class GUIApp:
 
         self.head_only = tk.BooleanVar(value=True)
         tk.Checkbutton(master, text="ヘッドのみ学習", variable=self.head_only).grid(row=11, column=0, columnspan=2)
-        
+
         self.use_pretrained = tk.BooleanVar(value=True)
         tk.Checkbutton(master, text="学習済み重みを使用（pretrained=True）", variable=self.use_pretrained).grid(row=12, column=0, columnspan=2)
 
@@ -270,7 +283,7 @@ class GUIApp:
         self.status.grid(row=13, column=0, columnspan=2)
 
         tk.Button(master, text="学習開始", command=self.start_training_thread).grid(row=14, column=0, columnspan=2)
-        
+
         tk.Button(master, text="中断", command=self.stop_training_now).grid(row=15, column=0, columnspan=2)
 
 
@@ -324,13 +337,12 @@ class GUIApp:
         except Exception as e:
             self.master.after(0, lambda: self.status.config(text=f"エラー: {e}"))
             self.master.after(0, lambda e=e: messagebox.showerror("エラー", str(e)))
-            
+
     def stop_training_now(self):
         self.stop_training = True
         self.status.config(text="中止指示済み（変更可）")
-        
+
     def on_closing(self):
-        import matplotlib.pyplot as plt
         plt.close('all')  # ウィンドウ閉じる前に全グラフ閉じる
         self.master.destroy()
 
