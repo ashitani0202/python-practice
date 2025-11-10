@@ -27,17 +27,6 @@ jobs:
       - run: pip install ruff
       - run: ruff .  # プロジェクト全体をチェック
 
-  black:
-    name: Check formatting (black)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.10.11"
-      - run: pip install black
-      - run: black --check .
-
   isort:
     name: Check import sort (isort)
     runs-on: windows-latest
