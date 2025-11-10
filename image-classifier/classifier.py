@@ -356,6 +356,7 @@ class GUIApp:
         except Exception as e:
             self.master.after(0, lambda: self.status.config(text=f"エラー: {e}"))
             self.master.after(0, lambda e=e: messagebox.showerror("エラー", str(e)))
+
     def stop_training_now(self):
         self.stop_training = True
         self.status.config(text="中止指示済み（変更可）")
