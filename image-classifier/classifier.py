@@ -211,6 +211,11 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     f"{model_rev}-Matrix | acc={acc*100:.2f}, lr={lr}, "
     f"batch={batch_size}, epochs={num_epochs}\n{head_flag}"
     )
+    plt.title(
+    f"{model_rev}-Matrix | acc={acc*100:.2f}, lr={lr}, "
+    f"batch={batch_size}, epochs={num_epochs}\n{head_flag}"
+)
+
     plt.tight_layout()
     matrix_path = get_unique_filepath(
         os.path.join(matrix_dir, f"matrix_{model_rev}_acc{acc*100:.2f}.png")
@@ -218,17 +223,17 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     plt.savefig(matrix_path)
     print(f"保存しました{matrix_path}")
 
-    excel_file ="output.xlsx"
+    excel_file = "output.xlsx"
     result = {
         "モデル名": model_rev,
         "学習率": lr,
         "エポック数": num_epochs,
         "バッチサイズ": batch_size,
-        "精度(acc)": round(final_val_acc * 100, 2), # % にして保存
+        "精度(acc)": round(final_val_acc * 100, 2),  # % にして保存
         "画像サイズ": f"{resize_tuple[0]}x{resize_tuple[1]}",
         "Normalize平均": ",".join(map(str, mean)),
         "Normalize分散": ",".join(map(str, std)),
-        "学習":head_flag,
+        "学習": head_flag,
         "pretrained": pretrained
     }
 
@@ -245,6 +250,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     df.to_excel(excel_file, index=False)
     print(f"結果を {excel_file} に保存しました。")
 
+
 # GUI部分
 class GUIApp:
     def __init__(self, master):
@@ -256,7 +262,8 @@ class GUIApp:
         self.stop_training = False
 
         def add_entry(row, label, default=""):
-            tk.Label(master, text=label).grid(row=row, column=0, sticky="e", padx=5, pady=5)
+            tk.Label(master, text=label
+                     ).grid(row=row, column=0, sticky="e", padx=5, pady=5)
             entry = tk.Entry(master)
             entry.insert(0, default)
             entry.grid(row=row, column=1, sticky="w", padx=5, pady=5)
@@ -267,9 +274,13 @@ class GUIApp:
         self.batch_entry = add_entry(3, "バッチサイズ", "16")
         self.resize_entry = add_entry(4, "画像サイズ (例: 100x100)", "100x100")
         # 正規化 平均
-        self.mean_entry = add_entry(5, "Normalize平均 (例: 0.485,0.456,0.406)", "0.485,0.456,0.406")
+        self.mean_entry = add_entry(
+            5, "Normalize平均 (例: 0.485,0.456,0.406)", "0.485,0.456,0.406"
+            )
         # 正規化 分散
-        self.std_entry = add_entry(6, "Normalize分散 (例: 0.229,0.224,0.225)", "0.229,0.224,0.225")
+        self.std_entry = add_entry(
+            6, "Normalize分散 (例: 0.229,0.224,0.225)", "0.229,0.224,0.225"
+            )
         self.train_dir = ""
         self.val_dir = ""
         # 学習データフォルダ選択ボタンとその下のパス表示ラベル
@@ -277,15 +288,18 @@ class GUIApp:
             row=7, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 2))
 
         self.train_label = tk.Label(master, text="未選択", fg="gray")
-        self.train_label.grid(row=8, column=0, columnspan=2, sticky="w", padx=20)
+        self.train_label.grid(
+            row=8, column=0, columnspan=2, sticky="w", padx=20
+            )
 
         # 検証データフォルダ選択ボタンとその下のパス表示ラベル
         tk.Button(master, text="検証データフォルダ選択", command=self.select_val).grid(
             row=9, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 2))
 
         self.val_label = tk.Label(master, text="未選択", fg="gray")
-        self.val_label.grid(row=10, column=0, columnspan=2, sticky="w", padx=20)
-
+        self.val_label.grid(
+            row=10, column=0, columnspan=2, sticky="w", padx=20
+            )
 
         self.head_only = tk.BooleanVar(value=True)
         tk.Checkbutton(
@@ -332,6 +346,7 @@ class GUIApp:
     def start_training_thread(self):
         self.stop_training = False
         threading.Thread(target=self.train).start()
+
     def train(self):
         # 画像サイズパース
         resize_str = self.resize_entry.get()  # "100x100"
@@ -339,12 +354,16 @@ class GUIApp:
             resize_tuple = tuple(map(int, resize_str.lower().split("x")))
             if len(resize_tuple) != 2:
                 raise ValueError("画像サイズは '幅x高さ' の形式で指定してください。")
-        except:
+        except Exception as e:
             messagebox.showerror("エラー", "画像サイズの形式が不正です（例: 100x100）")
             return
         # Normalize平均・分散
-        mean = list(map(float, self.mean_entry.get().split(",")))  # [0.485, 0.456, 0.406]
-        std = list(map(float, self.std_entry.get().split(",")))    # [0.229, 0.224, 0.225]
+        mean = list(map(
+            float, self.mean_entry.get().split(",")
+            ))  # [0.485, 0.456, 0.406]
+        std = list(map(
+            float, self.std_entry.get().split(",")
+            ))    # [0.229, 0.224, 0.225]
 
         try:
             self.master.after(0, lambda: self.status.config(text="学習中..."))
@@ -367,7 +386,9 @@ class GUIApp:
             self.master.after(0, lambda: self.status.config(text="完了"))
         except Exception as e:
             self.master.after(0, lambda: self.status.config(text=f"エラー: {e}"))
-            self.master.after(0, lambda e=e: messagebox.showerror("エラー", str(e)))
+            self.master.after(
+                0, lambda e=e: messagebox.showerror("エラー", str(e))
+                )
 
     def stop_training_now(self):
         self.stop_training = True
@@ -377,6 +398,7 @@ class GUIApp:
         import matplotlib.pyplot as plt
         plt.close('all')  # ウィンドウ閉じる前に全グラフ閉じる
         self.master.destroy()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
