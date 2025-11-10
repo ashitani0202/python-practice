@@ -4,44 +4,59 @@ on:
   workflow_dispatch:  # 手動実行
   pull_request:       # PR 作成・更新時に自動実行
 
-
 jobs:
-  build:
+  flake8:
+    name: Lint (flake8)
     runs-on: windows-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.10.11"
+      - run: pip install flake8
+      - run: flake8 .
 
-      - name: Install linters / type-check tools
-        run: |
-          pip install flake8 black isort mypy pyright
-        continue-on-error: true      # ✅ エラーでも続行
+  black:
+    name: Check formatting (black)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.11"
+      - run: pip install black
+      - run: black --check .
 
-      # ---------- Lint ----------
-      - name: Run flake8 (lint)
-        run: flake8 .
-        continue-on-error: true      # ✅ エラーでも続行
+  isort:
+    name: Check import sort (isort)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.11"
+      - run: pip install isort
+      - run: isort . --check-only
 
-      # ---------- Formatting Check ----------
-      - name: Check formatting (black)
-        run: black --check .
-        continue-on-error: true      # ✅ エラーでも続行
+  mypy:
+    name: Type check (mypy)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.11"
+      - run: pip install mypy
+      - run: mypy .
 
-      - name: Check import sort (isort)
-        run: isort . --check-only
-        continue-on-error: true      # ✅ エラーでも続行
+  pyright:
+    name: Type check (pyright)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10.11"
+      - run: pip install pyright
+      - run: pyright
 
-      # ---------- Type Checking ----------
-      - name: Run mypy
-        run: mypy .
-        continue-on-error: true      # ✅ エラーでも続行
-
-      - name: Run pyright
-        run: pyright
-        continue-on-error: true      # ✅ エラーでも続行
