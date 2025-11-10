@@ -352,7 +352,6 @@ class GUIApp:
                 use_early_stopping=self.early_stopping_var.get(),
                 patience=5
             )
-
             self.master.after(0, lambda: self.status.config(text="完了"))
         except Exception as e:
             self.master.after(0, lambda: self.status.config(text=f"エラー: {e}"))
