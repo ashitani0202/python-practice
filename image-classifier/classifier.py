@@ -1,20 +1,21 @@
 import os
+import threading
 import tkinter as tk
+from tkinter import filedialog, messagebox
+
 import matplotlib
 import matplotlib.pyplot as plt
-import seaborn as sns
-import threading
 import pandas as pd
+import seaborn as sns
 import timm
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
-from torchvision import datasets
+from sklearn.metrics import accuracy_score, confusion_matrix
 from torch.utils.data import DataLoader
-from sklearn.metrics import confusion_matrix, accuracy_score
+from torchvision import datasets
 from tqdm import tqdm
-from tkinter import filedialog, messagebox
 
 matplotlib.use('Agg')  # 画面表示なしのバックエンドに切り替え
 
@@ -102,7 +103,9 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     ])
     train_dataset = datasets.ImageFolder(train_dir, transform=train_transform)
     val_dataset = datasets.ImageFolder(val_dir, transform=val_transform)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=True
+        )
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     num_classes = len(train_dataset.classes)
@@ -117,12 +120,13 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     optimizer = optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()), lr=lr
         )
-    train_loss_list, train_acc_list, val_loss_list, val_acc_list = [], [], [], []
+    train_loss_list, train_acc_list = [], []
+    val_loss_list, val_acc_list = [], []
     best_acc = 0.0
     best_epoch = 0
     epochs_no_improve = 0
     pth_dir = "results/pth"
-    os.makedirs(pth_dir,exist_ok=True)
+    os.makedirs(pth_dir, exist_ok=True)
     for epoch in range(num_epochs):
         if not train_dir or not os.path.exists(train_dir):
             messagebox.showerror("エラー", "学習フォルダが設定されていません")
@@ -135,7 +139,13 @@ def run_training(model_rev, lr, num_epochs, batch_size,
         if should_stop_func and should_stop_func():
             print("⚠️ 学習が中断されました")
             return
-        train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, device)
+        train_loss, train_acc = train_epoch(
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device
+            )
         val_loss, val_acc = val_epoch(model, val_loader, criterion, device)
         train_loss_list.append(train_loss)
         train_acc_list.append(train_acc)
@@ -147,19 +157,24 @@ def run_training(model_rev, lr, num_epochs, batch_size,
             best_epoch = epoch
             pth_path = os.path.join(pth_dir, f"model_{model_rev}.pth")
             torch.save(model.state_dict(), pth_path)
-            print(f"✅ Saved best model at epoch {epoch} with acc={val_acc:.2f}")
+            print(
+                f"✅ Saved best model at epoch {epoch} "
+                f"with acc={val_acc:.2f}")
             epochs_no_improve = 0
         else:
             epochs_no_improve += 1
         print(
-            f"[{epoch+1}/{num_epochs}] Train Loss: {train_loss:.4f}, "
-            "Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f}, Acc: {val_acc:.4f}"
+            f"[{epoch+1}/{num_epochs}] "
+            f"Train Loss: {train_loss:.4f}, "
+            f"Acc: {train_acc:.4f} | "
+            f"Val Loss: {val_loss:.4f}, "
+            f"Acc: {val_acc:.4f}"
             )
         # ✅ EarlyStopping 発動条件
         if use_early_stopping and epochs_no_improve >= patience:
             print(
                 f"⏹ EarlyStopping 発動 (epoch {epoch+1}) - "
-                "best acc={best_acc:.2f} (epoch {best_epoch+1})"
+                f"best acc={best_acc:.2f} (epoch {best_epoch+1})"
                 )
             break
     head_flag = "head_only=True" if head_only else "head_only=False"
@@ -169,15 +184,18 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     loss_dir = "results/loss"
     os.makedirs(loss_dir, exist_ok=True)
     plt.figure(figsize=(15, 5))
-    plt.subplot(1,2,1)
+    plt.subplot(1, 2, 1)
     plt.plot(train_loss_list, label="train_loss")
     plt.plot(val_loss_list, label="val_loss")
     plt.legend()
-    plt.subplot(1,2,2)
+    plt.subplot(1, 2, 2)
     plt.plot(train_acc_list, label="train_acc")
     plt.plot(val_acc_list, label="val_acc")
     plt.legend()
-    plt.title(f"{model_rev}-Loss | lr={lr}, batch={batch_size}, epochs={num_epochs}\n{head_flag}")
+    plt.title(
+        f"{model_rev}-Loss | lr={lr}, batch={batch_size},"
+        f"epochs={num_epochs}\n{head_flag}"
+        )
     # --- loss曲線の保存 ---
     loss_path = get_unique_filepath(
         os.path.join(loss_dir, f"loss_{model_rev}_{final_val_acc*100:.2f}.png")
@@ -202,19 +220,19 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     class_names = val_dataset.classes
     matrix_dir = "results/matrix"
     os.makedirs(matrix_dir, exist_ok=True)
-    plt.figure(figsize=(8,6))
+    plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
                 xticklabels=class_names, yticklabels=class_names)
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
     plt.title(
-    f"{model_rev}-Matrix | acc={acc*100:.2f}, lr={lr}, "
-    f"batch={batch_size}, epochs={num_epochs}\n{head_flag}"
-    )
+        f"{model_rev}-Matrix | acc={acc*100:.2f}, lr={lr}, "
+        f"batch={batch_size}, epochs={num_epochs}\n{head_flag}"
+        )
     plt.title(
-    f"{model_rev}-Matrix | acc={acc*100:.2f}, lr={lr}, "
-    f"batch={batch_size}, epochs={num_epochs}\n{head_flag}"
-)
+        f"{model_rev}-Matrix | acc={acc*100:.2f}, lr={lr}, "
+        f"batch={batch_size}, epochs={num_epochs}\n{head_flag}"
+        )
 
     plt.tight_layout()
     matrix_path = get_unique_filepath(
@@ -354,7 +372,7 @@ class GUIApp:
             resize_tuple = tuple(map(int, resize_str.lower().split("x")))
             if len(resize_tuple) != 2:
                 raise ValueError("画像サイズは '幅x高さ' の形式で指定してください。")
-        except Exception as e:
+        except Exception:
             messagebox.showerror("エラー", "画像サイズの形式が不正です（例: 100x100）")
             return
         # Normalize平均・分散
@@ -386,16 +404,17 @@ class GUIApp:
             self.master.after(0, lambda: self.status.config(text="完了"))
         except Exception as e:
             self.master.after(0, lambda: self.status.config(text=f"エラー: {e}"))
-            self.master.after(
-                0, lambda e=e: messagebox.showerror("エラー", str(e))
-                )
+
+            def show_error():
+                messagebox.showerror("エラー", str(e))
+
+            self.master.after(0, show_error)
 
     def stop_training_now(self):
         self.stop_training = True
         self.status.config(text="中止指示済み（変更可）")
 
     def on_closing(self):
-        import matplotlib.pyplot as plt
         plt.close('all')  # ウィンドウ閉じる前に全グラフ閉じる
         self.master.destroy()
 
