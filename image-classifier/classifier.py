@@ -176,7 +176,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
             print(
                 f"⏹ EarlyStopping 発動 (epoch {epoch+1}) - "
                 f"best acc={best_acc:.2f} (epoch {best_epoch+1})"
-                )
+                ) 
             break
     head_flag = "head_only=True" if head_only else "head_only=False"
     if len(val_acc_list) == 0:
