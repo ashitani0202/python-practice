@@ -126,6 +126,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
     best_epoch = 0
     epochs_no_improve = 0
     pth_dir = "results/pth"
+    pth_path = ""
     os.makedirs(pth_dir, exist_ok=True)
     for epoch in range(num_epochs):
         if not train_dir or not os.path.exists(train_dir):
