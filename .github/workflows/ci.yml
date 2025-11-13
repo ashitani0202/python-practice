@@ -1,35 +1,37 @@
-name: CI  # ワークフロー名（1回だけ）
+name: CI
 
 on:
-  workflow_dispatch:  # 手動実行
-  pull_request:       # PR 作成・更新時に自動実行
+  workflow_dispatch:
+  pull_request:
 
 jobs:
   flake8:
     name: Lint (flake8)
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10.11"
       - run: pip install flake8
-      - run: flake8 .
+      - run: |
+          flake8 ./ \ 
+            --max-line-length=99 \
 
   ruff:
     name: Lint (ruff)
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10.11"
       - run: pip install ruff
-      - run: ruff check .  # プロジェクト全体をチェック
+      - run: ruff check .
 
   isort:
     name: Check import sort (isort)
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -48,7 +50,7 @@ jobs:
           python-version: "3.10.11"
       - run: pip install mypy
       - run: |
-          mypy .\
+          mypy ./ \
             --python-version 3.10 \
             --ignore-missing-imports \
             --follow-imports skip \
@@ -63,11 +65,17 @@ jobs:
 
   pyright:
     name: Type check (pyright)
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10.11"
       - run: pip install pyright
-      - run: pyright
+      - run: |
+          echo '{
+            "typeCheckingMode": "strict",
+            "reportMissingImports": false,
+            "reportGeneralTypeIssues": true
+          }' > pyrightconfig.json
+          pyright
