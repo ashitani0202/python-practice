@@ -49,17 +49,17 @@ jobs:
       - run: pip install mypy
       - run: |
           mypy .\
-            --python_version = 3.10 \
-            --ignore_missing_imports = True \
-            --follow_imports = skip \
-            --disallow_untyped_defs = True \
-            --disallow_incomplete_defs = True \
-            --no_implicit_optional = True \
-            --warn_return_any = True \
-            --warn_unused_ignores = True \
-            --strict_equality = True \
-            --show_error_codes = True \
-            --pretty = True \
+            --python-version 3.10 \
+            --ignore-missing-imports \
+            --follow-imports skip \
+            --disallow-untyped-defs \
+            --disallow-incomplete-defs \
+            --no-implicit-optional \
+            --warn-return-any \
+            --warn-unused-ignores \
+            --strict-equality \
+            --show-error-codes \
+            --pretty
 
   pyright:
     name: Type check (pyright)
