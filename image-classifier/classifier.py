@@ -403,12 +403,10 @@ class GUIApp:
             )
             self.master.after(0, lambda: self.status.config(text="完了"))
         except Exception as e:
-            self.master.after(0, lambda: self.status.config(text=f"エラー: {e}"))
+            def show_error(err: Exception):
+                messagebox.showerror("エラー", str(err))
 
-            def show_error():
-                messagebox.showerror("エラー", str(e))
-
-            self.master.after(0, show_error)
+            show_error(e)
 
     def stop_training_now(self):
         self.stop_training = True
