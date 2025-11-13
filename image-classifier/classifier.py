@@ -27,7 +27,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
                  use_early_stopping=True, patience=10):
 
     def set_trainable_layers(model, train_head_only=True):
-        if train_head_only:
+        if train_head_only: 
             for param in model.parameters():
                 param.requires_grad = False
             for param in model.get_classifier().parameters():
