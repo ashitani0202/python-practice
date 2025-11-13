@@ -20,6 +20,7 @@ from tqdm import tqdm
 matplotlib.use('Agg')  # 画面表示なしのバックエンドに切り替え
 
 
+
 def run_training(model_rev, lr, num_epochs, batch_size,
                  train_dir, val_dir, head_only, resize_tuple,
                  mean, std, pretrained=True, should_stop_func=None,
