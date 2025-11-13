@@ -35,7 +35,7 @@ def run_training(model_rev, lr, num_epochs, batch_size,
         else:
             for param in model.parameters():
                 param.requires_grad = True
-
+ 
     def train_epoch(model, dataloader, criterion, optimizer, device):
         model.train()
         train_loss, train_acc = 0, 0
