@@ -23,7 +23,7 @@ matplotlib.use('Agg')  # 画面表示なしのバックエンドに切り替え
 
 # GUI部分
 class GUIApp:
-    def __init__(self, master):
+    def __init__(self, master:tk) -> None:
         self.master = master
         master.title("PyTorch 分類モデル 学習GUI")
         master.geometry("600x500")  # ウィンドウサイズ指定
@@ -59,26 +59,26 @@ class GUIApp:
         tk.Button(master,text="学習開始",command=self.start_training).grid(row=15, column=0, columnspan=2)
         tk.Button(master,text="中断",command=self.stop_training).grid(row=16, column=0, columnspan=2)
 
-    def add_entry(self, row, label, default=""):
+    def add_entry(self, row: int, label: str, default: str ="") -> tk.Entry:
         tk.Label(self.master, text=label).grid(row=row, column=0, sticky="e", padx=5, pady=5)
         entry = tk.Entry(self.master)
         entry.insert(0, default)
         entry.grid(row=row, column=1, sticky="w", padx=5, pady=5)
         return entry
         
-    def select_train(self):
+    def select_train(self) -> None:
         path = filedialog.askdirectory()
         if path:  # ← 空でなければ更新
             self.train_dir = path
             self.train_label.config(text=path, fg="black")
 
-    def select_val(self):
+    def select_val(self) -> None:
         path = filedialog.askdirectory()
         if path:
             self.val_dir = path
             self.val_label.config(text=path, fg="black")
 
-    def start_training(self):
+    def start_training(self) -> None:
         self.stop_flg = False
         threading.Thread(target=self.train).start()
 
@@ -112,7 +112,7 @@ class GUIApp:
         except Exception as e:
             self.show_error(e)
 
-    def show_error(self, err: Exception):
+    def show_error(self, err: Exception) -> None:
         messagebox.showerror("エラー", str(err))
 
     def stop_training(self) -> None:
@@ -298,7 +298,7 @@ class GUIApp:
         df.to_excel(excel_file, index=False)
         print(f"結果を {excel_file} に保存しました。")
     
-    def set_trainable_layers(self, model, train_head_only=True):
+    def set_trainable_layers(self, model: timm, train_head_only: bool=True) -> None:
         if train_head_only:
             for param in model.parameters():
                 param.requires_grad = False
@@ -308,7 +308,7 @@ class GUIApp:
             for param in model.parameters():
                 param.requires_grad = True
 
-    def train_epoch(self, model, dataloader, criterion, optimizer, device, should_stop_func = False):
+    def train_epoch(self, model: timm, dataloader: torch, criterion: torch.nn.modules, optimizer: torch.optim, device: torch.device, should_stop_func: bool = False) -> None:
         model.train()
         train_loss, train_acc = 0, 0
         for images, labels in tqdm(dataloader, desc="Training"):
@@ -329,7 +329,7 @@ class GUIApp:
             train_acc / len(dataloader.dataset),
         )
 
-    def val_epoch(self, model, dataloader, criterion, device, should_stop_func = False):
+    def val_epoch(self, model: timm, dataloader: torch, criterion: torch.nn.modules, device: torch.device, should_stop_func: bool = False) -> None:
         model.eval()
         val_loss, val_acc = 0, 0
         with torch.no_grad():
@@ -348,7 +348,7 @@ class GUIApp:
             val_acc / len(dataloader.dataset),
         )
 
-    def get_unique_filepath(self, base_path):
+    def get_unique_filepath(self, base_path: str) -> None:
         """
         base_path にファイルパスを入れて、もし同名ファイルがあれば
         _1, _2, ... のように連番を付けて重複しないファイルパスを返す
