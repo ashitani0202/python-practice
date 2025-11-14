@@ -24,7 +24,7 @@ matplotlib.use('Agg')  # 画面表示なしのバックエンドに切り替え
 
 # GUI部分
 class GUIApp:
-    def __init__(self, master: tk) -> None:
+    def __init__(self, master: tk.Tk | tk.Toplevel) -> None:
         self.master = master
         master.title("PyTorch 分類モデル 学習GUI")
         master.geometry("600x500")  # ウィンドウサイズ指定
@@ -70,7 +70,9 @@ class GUIApp:
         tk.Button(
             master, text="学習開始", command=self.start_training
             ).grid(row=15, column=0, columnspan=2)
-        tk.Button(master, text="中断", command=self.stop_training).grid(row=16, column=0, columnspan=2)
+        tk.Button(
+            master, text="中断", command=self.stop_training
+            ).grid(row=16, column=0, columnspan=2)
 
     def add_entry(self, row: int, label: str, default: str = "") -> tk.Entry:
         tk.Label(self.master, text=label).grid(row=row, column=0, sticky="e", padx=5, pady=5)
@@ -146,7 +148,7 @@ class GUIApp:
                      head_only: bool,
                      resize_tuple: tuple,
                      pretrained: bool = True,
-                     should_stop_func: Optional[Callable[[], bool]] = False,
+                     should_stop_func: Optional[Callable[[], bool]] = None,
                      use_early_stopping: bool = True,
                      patience: int = 10
                      ) -> None:
@@ -332,7 +334,7 @@ class GUIApp:
                     criterion: torch.nn.modules,
                     optimizer: torch.optim,
                     device: torch.device,
-                    should_stop_func: Optional[Callable[[], bool]] = False
+                    should_stop_func: Optional[Callable[[], bool]] = None
                     ) -> tuple[float, float]:
         model.train()
         train_loss, train_acc = 0, 0
@@ -359,7 +361,7 @@ class GUIApp:
                   dataloader: torch,
                   criterion: torch.nn.modules,
                   device: torch.device,
-                  should_stop_func: Optional[Callable[[], bool]] = False
+                  should_stop_func: Optional[Callable[[], bool]] = None
                   ) -> tuple[float, float]:
         model.eval()
         val_loss, val_acc = 0, 0
@@ -380,7 +382,7 @@ class GUIApp:
             val_acc / len(dataloader.dataset),
         )
 
-    def get_unique_filepath(self, base_path: str) -> None:
+    def get_unique_filepath(self, base_path: str) -> str:
         """
         base_path にファイルパスを入れて、もし同名ファイルがあれば
         _1, _2, ... のように連番を付けて重複しないファイルパスを返す
