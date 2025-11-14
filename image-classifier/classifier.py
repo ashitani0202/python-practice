@@ -2,6 +2,7 @@ import os
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox
+from typing import Callable, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -10,14 +11,13 @@ import seaborn as sns
 import timm
 import torch
 import torch.nn as nn
-import torch.optim as optim
+import torch.optim as Optimizer
 import torchvision.transforms as transforms
 from sklearn.metrics import accuracy_score, confusion_matrix
-from timm.data import resolve_model_data_config
+from timm.data.config import resolve_model_data_config
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from tqdm import tqdm
-from typing import Callable, Optional
 
 matplotlib.use('Agg')  # 画面表示なしのバックエンドに切り替え
 
@@ -184,19 +184,27 @@ class GUIApp:
         model.to(device)
         self.set_trainable_layers(model, head_only)
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
+        optimizer = Optimizer.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
         os.makedirs(pth_dir, exist_ok=True)
         for epoch in range(num_epochs):
             if should_stop_func and should_stop_func():
                 print("⚠️ 学習が中断されました")
                 return
-            train_loss, train_acc = self.train_epoch(
+            train_results = self.train_epoch(
                 model, train_loader, criterion, optimizer, device,
                 should_stop_func=lambda: self.stop_flg
-                )
-            val_loss, val_acc = self.val_epoch(
+            )
+            if train_results is None:
+                print("Training was interrupted")
+                return
+            train_loss, train_acc = train_results
+            val_results = self.val_epoch(
                 model, val_loader, criterion, device, should_stop_func=lambda: self.stop_flg
-                )
+            )
+            if val_results is None:
+                print("Validation was interrupted")
+                return
+            val_loss, val_acc = val_results
             train_loss_list.append(train_loss)
             train_acc_list.append(train_acc)
             val_loss_list.append(val_loss)
@@ -318,7 +326,7 @@ class GUIApp:
         df.to_excel(excel_file, index=False)
         print(f"結果を {excel_file} に保存しました。")
 
-    def set_trainable_layers(self, model: timm, train_head_only: bool = True) -> None:
+    def set_trainable_layers(self, model: nn.Module, train_head_only: bool = True) -> None:
         if train_head_only:
             for param in model.parameters():
                 param.requires_grad = False
@@ -329,19 +337,19 @@ class GUIApp:
                 param.requires_grad = True
 
     def train_epoch(self,
-                    model: timm,
-                    dataloader: torch,
-                    criterion: torch.nn.modules,
-                    optimizer: torch.optim,
+                    model: nn.Module,
+                    dataloader: DataLoader,
+                    criterion: nn.CrossEntropyLoss,
+                    optimizer: Optimizer.AdamW,
                     device: torch.device,
                     should_stop_func: Optional[Callable[[], bool]] = None
-                    ) -> tuple[float, float]:
+                    ) -> Optional[tuple[float, float]]:
         model.train()
         train_loss, train_acc = 0, 0
         for images, labels in tqdm(dataloader, desc="Training"):
             if should_stop_func and should_stop_func():
                 print("⚠️ 学習が中断されました")
-                return
+                return None
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
             outputs = model(images)
@@ -352,34 +360,33 @@ class GUIApp:
             loss.backward()
             optimizer.step()
         return (
-            train_loss / len(dataloader.dataset),
-            train_acc / len(dataloader.dataset),
+            train_loss / len(dataloader.dataset),  # type: ignore
+            train_acc / len(dataloader.dataset),  # type: ignore
         )
-
+        
     def val_epoch(self,
-                  model: timm,
-                  dataloader: torch,
-                  criterion: torch.nn.modules,
+                  model: nn.Module,
+                  dataloader: DataLoader,
+                  criterion: nn.CrossEntropyLoss,
                   device: torch.device,
                   should_stop_func: Optional[Callable[[], bool]] = None
-                  ) -> tuple[float, float]:
+                  ) -> Optional[tuple[float, float]]:
         model.eval()
         val_loss, val_acc = 0, 0
         with torch.no_grad():
             for images, labels in tqdm(dataloader, desc="Validation"):
                 if should_stop_func and should_stop_func():
                     print("⚠️ 学習が中断されました")
-                    return
+                    return None
                 images, labels = images.to(device), labels.to(device)
                 outputs = model(images)
                 loss = criterion(outputs, labels)
                 val_loss += loss.item() * images.size(0)
                 acc = (outputs.max(1)[1] == labels).sum()
                 val_acc += acc.item()
-        print(type(val_loss / len(dataloader.dataset)))
         return (
-            val_loss / len(dataloader.dataset),
-            val_acc / len(dataloader.dataset),
+            val_loss / len(dataloader.dataset),  # type: ignore
+            val_acc / len(dataloader.dataset),  # type: ignore
         )
 
     def get_unique_filepath(self, base_path: str) -> str:
