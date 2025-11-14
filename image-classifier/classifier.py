@@ -13,17 +13,18 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 from sklearn.metrics import accuracy_score, confusion_matrix
+from timm.data import resolve_model_data_config
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from tqdm import tqdm
-from timm.data import resolve_model_data_config
+from typing import Callable, Optional
 
 matplotlib.use('Agg')  # 画面表示なしのバックエンドに切り替え
 
 
 # GUI部分
 class GUIApp:
-    def __init__(self, master:tk) -> None:
+    def __init__(self, master: tk) -> None:
         self.master = master
         master.title("PyTorch 分類モデル 学習GUI")
         master.geometry("600x500")  # ウィンドウサイズ指定
@@ -33,39 +34,51 @@ class GUIApp:
 
         self.train_dir = ""
         self.val_dir = ""
-        
+
         self.model_entry = self.add_entry(0, "モデル名", "vgg16")
         self.lr_entry = self.add_entry(1, "学習率", "0.001")
         self.epoch_entry = self.add_entry(2, "エポック数", "1")
         self.batch_entry = self.add_entry(3, "バッチサイズ", "16")
         self.resize_entry = self.add_entry(4, "画像サイズ (例: 100x100)", "100x100")
-        
+
         # 学習データフォルダ選択ボタンとその下のパス表示ラベル
-        tk.Button(master, text="学習データフォルダ選択", command=self.select_train).grid(row=7, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 2))
+        tk.Button(
+            master, text="学習データフォルダ選択", command=self.select_train
+            ).grid(row=7, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 2))
         self.train_label = tk.Label(master, text="未選択", fg="gray")
         self.train_label.grid(row=8, column=0, columnspan=2, sticky="w", padx=20)
-        tk.Button(master, text="検証データフォルダ選択", command=self.select_val).grid(row=9, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 2))
+        tk.Button(
+            master, text="検証データフォルダ選択", command=self.select_val
+            ).grid(row=9, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 2))
         self.val_label = tk.Label(master, text="未選択", fg="gray")
         self.val_label.grid(row=10, column=0, columnspan=2, sticky="w", padx=20)
         self.head_only = tk.BooleanVar(value=True)
-        tk.Checkbutton(master, text="ヘッドのみ学習", variable=self.head_only).grid(row=11, column=0, columnspan=2)
+        tk.Checkbutton(
+            master, text="ヘッドのみ学習", variable=self.head_only
+            ).grid(row=11, column=0, columnspan=2)
         self.use_pretrained = tk.BooleanVar(value=True)
-        tk.Checkbutton(master, text="学習済み重みを使用（pretrained=True）", variable=self.use_pretrained).grid(row=12, column=0, columnspan=2)
+        tk.Checkbutton(
+            master, text="学習済み重みを使用（pretrained=True）", variable=self.use_pretrained
+            ).grid(row=12, column=0, columnspan=2)
         # EarlyStopping チェックボックス用の変数
         self.early_stopping_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(master, text="EarlyStopping を有効にする", variable=self.early_stopping_var).grid(row=13, column=0, columnspan=2)
+        tk.Checkbutton(
+            master, text="EarlyStopping を有効にする", variable=self.early_stopping_var
+            ).grid(row=13, column=0, columnspan=2)
         self.status = tk.Label(master, text="準備完了")
         self.status.grid(row=14, column=0, columnspan=2)
-        tk.Button(master,text="学習開始",command=self.start_training).grid(row=15, column=0, columnspan=2)
-        tk.Button(master,text="中断",command=self.stop_training).grid(row=16, column=0, columnspan=2)
+        tk.Button(
+            master, text="学習開始", command=self.start_training
+            ).grid(row=15, column=0, columnspan=2)
+        tk.Button(master, text="中断", command=self.stop_training).grid(row=16, column=0, columnspan=2)
 
-    def add_entry(self, row: int, label: str, default: str ="") -> tk.Entry:
+    def add_entry(self, row: int, label: str, default: str = "") -> tk.Entry:
         tk.Label(self.master, text=label).grid(row=row, column=0, sticky="e", padx=5, pady=5)
         entry = tk.Entry(self.master)
         entry.insert(0, default)
         entry.grid(row=row, column=1, sticky="w", padx=5, pady=5)
         return entry
-        
+
     def select_train(self) -> None:
         path = filedialog.askdirectory()
         if path:  # ← 空でなければ更新
@@ -133,7 +146,7 @@ class GUIApp:
                      head_only: bool,
                      resize_tuple: tuple,
                      pretrained: bool = True,
-                     should_stop_func = None,
+                     should_stop_func: Optional[Callable[[], bool]] = False,
                      use_early_stopping: bool = True,
                      patience: int = 10
                      ) -> None:
@@ -165,7 +178,7 @@ class GUIApp:
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         num_classes = len(train_dataset.classes)
-        model = timm.create_model(model_rev, pretrained=pretrained, num_classes=num_classes) 
+        model = timm.create_model(model_rev, pretrained=pretrained, num_classes=num_classes)
         model.to(device)
         self.set_trainable_layers(model, head_only)
         criterion = nn.CrossEntropyLoss()
@@ -175,8 +188,13 @@ class GUIApp:
             if should_stop_func and should_stop_func():
                 print("⚠️ 学習が中断されました")
                 return
-            train_loss, train_acc = self.train_epoch(model, train_loader, criterion, optimizer, device, should_stop_func=lambda: self.stop_flg,)
-            val_loss, val_acc = self.val_epoch(model, val_loader, criterion, device, should_stop_func=lambda: self.stop_flg,)
+            train_loss, train_acc = self.train_epoch(
+                model, train_loader, criterion, optimizer, device,
+                should_stop_func=lambda: self.stop_flg
+                )
+            val_loss, val_acc = self.val_epoch(
+                model, val_loader, criterion, device, should_stop_func=lambda: self.stop_flg
+                )
             train_loss_list.append(train_loss)
             train_acc_list.append(train_acc)
             val_loss_list.append(val_loss)
@@ -297,8 +315,8 @@ class GUIApp:
 
         df.to_excel(excel_file, index=False)
         print(f"結果を {excel_file} に保存しました。")
-    
-    def set_trainable_layers(self, model: timm, train_head_only: bool=True) -> None:
+
+    def set_trainable_layers(self, model: timm, train_head_only: bool = True) -> None:
         if train_head_only:
             for param in model.parameters():
                 param.requires_grad = False
@@ -308,7 +326,14 @@ class GUIApp:
             for param in model.parameters():
                 param.requires_grad = True
 
-    def train_epoch(self, model: timm, dataloader: torch, criterion: torch.nn.modules, optimizer: torch.optim, device: torch.device, should_stop_func: bool = False) -> None:
+    def train_epoch(self,
+                    model: timm,
+                    dataloader: torch,
+                    criterion: torch.nn.modules,
+                    optimizer: torch.optim,
+                    device: torch.device,
+                    should_stop_func: Optional[Callable[[], bool]] = False
+                    ) -> tuple[float, float]:
         model.train()
         train_loss, train_acc = 0, 0
         for images, labels in tqdm(dataloader, desc="Training"):
@@ -329,7 +354,13 @@ class GUIApp:
             train_acc / len(dataloader.dataset),
         )
 
-    def val_epoch(self, model: timm, dataloader: torch, criterion: torch.nn.modules, device: torch.device, should_stop_func: bool = False) -> None:
+    def val_epoch(self,
+                  model: timm,
+                  dataloader: torch,
+                  criterion: torch.nn.modules,
+                  device: torch.device,
+                  should_stop_func: Optional[Callable[[], bool]] = False
+                  ) -> tuple[float, float]:
         model.eval()
         val_loss, val_acc = 0, 0
         with torch.no_grad():
@@ -343,6 +374,7 @@ class GUIApp:
                 val_loss += loss.item() * images.size(0)
                 acc = (outputs.max(1)[1] == labels).sum()
                 val_acc += acc.item()
+        print(type(val_loss / len(dataloader.dataset)))
         return (
             val_loss / len(dataloader.dataset),
             val_acc / len(dataloader.dataset),
