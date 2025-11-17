@@ -161,7 +161,7 @@ class GUIApp:
         epochs_no_improve = 0
         pth_dir = "results/pth"
         pth_path = ""
-
+ 
         if not train_dir or not os.path.exists(train_dir):
             messagebox.showerror("エラー", "学習フォルダが設定されていません")
             return
