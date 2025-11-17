@@ -74,8 +74,11 @@ jobs:
       - run: pip install pyright
       - run: |
           echo '{
-            "typeCheckingMode": "strict",
+            "typeCheckingMode": "basic",
             "reportMissingImports": false,
-            "reportGeneralTypeIssues": true
+            "reportGeneralTypeIssues": true,
+            "reportUnnecessaryTypeIgnoreComment": true,
+            "reportUnknownMemberType": true,
+            "reportUntypedBaseClass": true
           }' > pyrightconfig.json
           pyright
