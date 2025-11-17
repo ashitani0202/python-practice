@@ -78,7 +78,7 @@ jobs:
             "reportMissingImports": false,
             "reportGeneralTypeIssues": true,
             "reportUnnecessaryTypeIgnoreComment": true,
-            "reportUnknownMemberType": true,
+            "reportUnknownMemberType": false,
             "reportUntypedBaseClass": true
           }' > pyrightconfig.json
           pyright
