@@ -274,9 +274,10 @@ class GUIApp:
                 labels = labels.cpu().numpy()
                 all_preds.extend(preds)
                 all_labels.extend(labels)
-
-        acc: Callable[..., float] = accuracy_score(all_labels, all_preds)
-        cm: Callable[..., np.ndarray] = confusion_matrix(all_labels, all_preds)
+        accuracy_score_fn: Callable[..., float] = accuracy_score
+        confusion_matrix_fn: Callable[..., np.ndarray] = confusion_matrix
+        acc: Callable[..., float] = accuracy_score_fn(all_labels, all_preds)
+        cm: Callable[..., np.ndarray] = confusion_matrix_fn(all_labels, all_preds)
         class_names = val_dataset.classes
         matrix_dir = "results/matrix"
         os.makedirs(matrix_dir, exist_ok=True)
