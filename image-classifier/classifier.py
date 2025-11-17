@@ -7,6 +7,7 @@ from typing import Callable, Optional, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import timm
@@ -274,8 +275,8 @@ class GUIApp:
                 all_preds.extend(preds)
                 all_labels.extend(labels)
 
-        acc = accuracy_score(all_labels, all_preds)
-        cm = confusion_matrix(all_labels, all_preds)
+        acc: Callable[..., float] = accuracy_score(all_labels, all_preds)
+        cm: Callable[..., np.ndarray] = confusion_matrix(all_labels, all_preds)
         class_names = val_dataset.classes
         matrix_dir = "results/matrix"
         os.makedirs(matrix_dir, exist_ok=True)
@@ -361,8 +362,8 @@ class GUIApp:
             loss.backward()
             optimizer.step()
         return (
-            train_loss / len(dataloader.dataset),
-            train_acc / len(dataloader.dataset),
+            train_loss / len(cast(Sized, dataloader.dataset)),
+            train_acc / len(cast(Sized, dataloader.dataset)),
         )
 
     def val_epoch(self,
@@ -374,8 +375,6 @@ class GUIApp:
                   ) -> Optional[tuple[float, float]]:
         model.eval()
         val_loss, val_acc = 0, 0
-        # pyright は DataLoader.dataset が Sized と気づかないので cast を使う
-        
         with torch.no_grad():
             for images, labels in tqdm(dataloader, desc="Validation"):
                 if should_stop_func and should_stop_func():
@@ -388,8 +387,8 @@ class GUIApp:
                 acc = (outputs.max(1)[1] == labels).sum()
                 val_acc += acc.item()
         return (
-            val_loss / len(dataloader.dataset),
-            val_acc / len(dataloader.dataset),
+            val_loss / len(cast(Sized, dataloader.dataset)),
+            val_acc / len(cast(Sized, dataloader.dataset)),
         )
 
     def get_unique_filepath(self, base_path: str) -> str:
