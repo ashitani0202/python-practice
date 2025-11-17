@@ -1,8 +1,9 @@
 import os
 import threading
 import tkinter as tk
+from collections.abc import Sized
 from tkinter import filedialog, messagebox
-from typing import Callable, Optional
+from typing import Callable, Optional, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -360,10 +361,10 @@ class GUIApp:
             loss.backward()
             optimizer.step()
         return (
-            train_loss / len(dataloader.dataset),  # type: ignore
-            train_acc / len(dataloader.dataset),  # type: ignore
+            train_loss / len(dataloader.dataset),
+            train_acc / len(dataloader.dataset),
         )
-        
+
     def val_epoch(self,
                   model: nn.Module,
                   dataloader: DataLoader,
@@ -373,6 +374,8 @@ class GUIApp:
                   ) -> Optional[tuple[float, float]]:
         model.eval()
         val_loss, val_acc = 0, 0
+        # pyright は DataLoader.dataset が Sized と気づかないので cast を使う
+        
         with torch.no_grad():
             for images, labels in tqdm(dataloader, desc="Validation"):
                 if should_stop_func and should_stop_func():
@@ -385,8 +388,8 @@ class GUIApp:
                 acc = (outputs.max(1)[1] == labels).sum()
                 val_acc += acc.item()
         return (
-            val_loss / len(dataloader.dataset),  # type: ignore
-            val_acc / len(dataloader.dataset),  # type: ignore
+            val_loss / len(dataloader.dataset),
+            val_acc / len(dataloader.dataset),
         )
 
     def get_unique_filepath(self, base_path: str) -> str:
