@@ -161,7 +161,7 @@ class GUIApp:
         epochs_no_improve = 0
         pth_dir = "results/pth"
         pth_path = ""
- 
+
         if not train_dir or not os.path.exists(train_dir):
             messagebox.showerror("エラー", "学習フォルダが設定されていません")
             return
@@ -274,10 +274,8 @@ class GUIApp:
                 labels = labels.cpu().numpy()
                 all_preds.extend(preds)
                 all_labels.extend(labels)
-        accuracy_score_fn: Callable[..., float] = accuracy_score
-        confusion_matrix_fn: Callable[..., np.ndarray] = confusion_matrix
-        acc: Callable[..., float] = accuracy_score_fn(all_labels, all_preds)
-        cm: Callable[..., np.ndarray] = confusion_matrix_fn(all_labels, all_preds)
+        acc = accuracy_score(all_labels, all_preds)
+        cm = confusion_matrix(all_labels, all_preds)
         class_names = val_dataset.classes
         matrix_dir = "results/matrix"
         os.makedirs(matrix_dir, exist_ok=True)
